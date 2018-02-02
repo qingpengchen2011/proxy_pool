@@ -2,13 +2,13 @@
 # !/usr/bin/env python
 """
 -------------------------------------------------
-   File Name：     ProxyApi.py  
-   Description :  
+   File Name：     ProxyApi.py
+   Description :
    Author :       JHao
    date：          2016/12/4
 -------------------------------------------------
    Change Activity:
-                   2016/12/4: 
+                   2016/12/4:
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -37,14 +37,21 @@ api_list = {
 def index():
     return jsonify(api_list)
 
-
-@app.route('/get/')
+@app.route('/get')
 def get():
-    proxy = ProxyManager().get()
-    return proxy if proxy else 'no proxy!'
+    country = request.args.get('foreign')
+    anony = request.args.get('anony')
+    filters = {}
+    if foreign:
+        filters['foreign'] = foreign
+    if anony:
+        filters['anony'] = anony
+
+    proxy = ProxyManager().get(filters)
+    return jsonify(proxy) if proxy else 'no proxy!'
 
 
-@app.route('/refresh/')
+@app.route('/refresh')
 def refresh():
     # TODO refresh会有守护程序定时执行，由api直接调用性能较差，暂不使用
     # ProxyManager().refresh()
@@ -52,20 +59,20 @@ def refresh():
     return 'success'
 
 
-@app.route('/get_all/')
+@app.route('/get_all')
 def getAll():
     proxies = ProxyManager().getAll()
     return jsonify(proxies)
 
 
-@app.route('/delete/', methods=['GET'])
+@app.route('/delete', methods=['GET'])
 def delete():
     proxy = request.args.get('proxy')
     ProxyManager().delete(proxy)
     return 'success'
 
 
-@app.route('/get_status/')
+@app.route('/get_status')
 def getStatus():
     status = ProxyManager().getNumber()
     return jsonify(status)

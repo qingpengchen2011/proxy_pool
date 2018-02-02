@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 -------------------------------------------------
-   File Name：     main.py  
+   File Name：     main.py
    Description :  运行主函数
    Author :       JHao
    date：          2017/4/1
 -------------------------------------------------
    Change Activity:
-                   2017/4/1: 
+                   2017/4/1:
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -20,7 +20,10 @@ sys.path.append('../')
 from Api.ProxyApi import run as ProxyApiRun
 from Schedule.ProxyValidSchedule import run as ValidRun
 from Schedule.ProxyRefreshSchedule import run as RefreshRun
+from Manager.ProxyManager import ProxyManager
 
+import os
+os.environ['FLASK_DEBUG'] = '1'
 
 def run():
     p_list = list()

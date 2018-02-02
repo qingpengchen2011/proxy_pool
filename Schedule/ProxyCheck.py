@@ -34,29 +34,15 @@ class ProxyCheck(ProxyManager, Thread):
     def run(self):
         self.db.changeTable(self.useful_proxy_queue)
         while True:
-            proxy_item = self.db.pop()
-            while proxy_item:
-                proxy = proxy_item.get('proxy')
-                counter = proxy_item.get('value', 1)
-                if validUsefulProxy(proxy):
-                    # 验证通过计数器加1
-                    if counter and int(counter) < 1:
-                        self.db.put(proxy, num=int(counter) + 1)
-                    else:
-                        self.db.put(proxy)
-                    self.log.info('ProxyCheck: {} validation pass'.format(proxy))
+            proxy = self.db.pop()
+            if proxy:
+                addr = "%s:%s" % (proxy.get('ip'), proxy.get('port'))
+                if validUsefulProxy(addr):
+                    self.log.info('ProxyCheck: {} validation pass'.format(addr))
                 else:
-                    self.log.info('ProxyCheck: {} validation fail'.format(proxy))
-                    # 验证失败，计数器减1
-                    if counter and int(counter) <= FAIL_COUNT:
-                        self.log.info('ProxyCheck: {} fail too many, delete!'.format(proxy))
-                        self.db.delete(proxy)
-                    else:
-                        self.db.put(proxy, num=int(counter) - 1)
-
-                proxy_item = self.db.pop()
-            sleep(60 * 5)
-
+                    self.log.info('ProxyCheck: {} validation fail'.format(addr))
+                    self.db.delete(proxy['ip'])
+            sleep(20)
 
 if __name__ == '__main__':
     p = ProxyCheck()

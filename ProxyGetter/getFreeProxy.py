@@ -24,6 +24,7 @@ except:
 
 from Util.utilFunction import robustCrawl, getHtmlTree
 from Util.WebRequest import WebRequest
+from Util.LogHandler import LogHandler
 
 # for debug to disable insecureWarning
 requests.packages.urllib3.disable_warnings()
@@ -33,9 +34,19 @@ class GetFreeProxy(object):
     """
     proxy getter
     """
+    log = LogHandler('proxy_manager')
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def compose(ip, port, anony, protocol):
+        return {
+            'ip': ip,
+            'port': port,
+            'anony': anony,
+            'protocol': protocol
+        }
 
     @staticmethod
     def freeProxyFirst(page=10):
@@ -45,17 +56,20 @@ class GetFreeProxy(object):
         :return:
         """
         url_list = ['http://www.data5u.com/',
-                    'http://www.data5u.com/free/',
                     'http://www.data5u.com/free/gngn/index.shtml',
                     'http://www.data5u.com/free/gnpt/index.shtml']
         for url in url_list:
-            html_tree = getHtmlTree(url)
-            ul_list = html_tree.xpath('//ul[@class="l2"]')
-            for ul in ul_list:
+            html = getHtmlTree(url)
+            for item in html.xpath('//ul[@class="l2"]'):
                 try:
-                    yield ':'.join(ul.xpath('.//li/text()')[0:2])
+                    yield GetFreeProxy.compose(
+                        item.xpath('(.//li)[1]/text()')[0],
+                        item.xpath('(.//li)[2]/text()')[0],
+                        item.xpath('(.//li)[3]/a/text()')[0],
+                        item.xpath('(.//li)[4]/a/text()')[0]
+                    )
                 except Exception as e:
-                    pass
+                    self.log.warning("fetch proxy failed: " + str(e))
 
     @staticmethod
     def freeProxySecond(proxy_number=100):
@@ -81,13 +95,17 @@ class GetFreeProxy(object):
         :return:
         """
         url = 'http://www.ip181.com/'
-        html_tree = getHtmlTree(url)
-        try:
-            tr_list = html_tree.xpath('//tr')[1:]
-            for tr in tr_list:
-                yield ':'.join(tr.xpath('./td/text()')[0:2])
-        except Exception as e:
-            pass
+        html = getHtmlTree(url)
+        for item in html.xpath('//tr[position()>1]'):
+            try:
+                yield GetFreeProxy.compose(
+                    item.xpath('./td[1]/text()')[0],
+                    item.xpath('./td[2]/text()')[0],
+                    item.xpath('./td[3]/text()')[0],
+                    item.xpath('./td[4]/text()')[0]
+                )
+            except Exception as e:
+                self.log.warning("fetch proxy failed: " + str(e))
 
     @staticmethod
     def freeProxyFourth():
@@ -95,17 +113,22 @@ class GetFreeProxy(object):
         抓取西刺代理 http://api.xicidaili.com/free2016.txt
         :return:
         """
-        url_list = ['http://www.xicidaili.com/nn',  # 高匿
-                    'http://www.xicidaili.com/nt',  # 透明
-                    ]
-        for each_url in url_list:
-            tree = getHtmlTree(each_url)
-            proxy_list = tree.xpath('.//table[@id="ip_list"]//tr')
-            for proxy in proxy_list:
+        url_list = [
+            'http://www.xicidaili.com/nn',  # 高匿
+            'http://www.xicidaili.com/nt',  # 透明
+        ]
+        for url in url_list:
+            html = getHtmlTree(url)
+            for item in html.xpath('//table[@id="ip_list"]//tr')[1:]:
                 try:
-                    yield ':'.join(proxy.xpath('./td/text()')[0:2])
+                    yield GetFreeProxy.compose(
+                        item.xpath('./td[2]/text()')[0],
+                        item.xpath('./td[3]/text()')[0],
+                        item.xpath('./td[5]/text()')[0],
+                        item.xpath('./td[6]/text()')[0]
+                    )
                 except Exception as e:
-                    pass
+                    self.log.warning("fetch proxy failed: " + str(e))
 
     @staticmethod
     def freeProxyFifth():
@@ -132,7 +155,7 @@ class GetFreeProxy(object):
                     port = each_proxy.xpath(".//span[contains(@class, 'port')]/text()")[0]
                     yield '{}:{}'.format(ip_addr, port)
                 except Exception as e:
-                    pass
+                    self.log.warning("fetch proxy failed: " + str(e))
 
     @staticmethod
     def freeProxySixth():
@@ -140,28 +163,32 @@ class GetFreeProxy(object):
         抓取讯代理免费proxy http://www.xdaili.cn/ipagent/freeip/getFreeIps?page=1&rows=10
         :return:
         """
-        url = 'http://www.xdaili.cn/ipagent/freeip/getFreeIps?page=1&rows=10'
+        url = 'http://www.xdaili.cn/ipagent/freeip/getFreeIps?page=1&rows=100'
         request = WebRequest()
         try:
             res = request.get(url).json()
             for row in res['RESULT']['rows']:
-                yield '{}:{}'.format(row['ip'], row['port'])
+                yield GetFreeProxy.compose(row['ip'], row['port'], row['anony'], row['type'])
         except Exception as e:
-            pass
+            self.log.warning("fetch proxy failed: " + str(e))
 
     @staticmethod
     def freeProxySeventh():
         """
         快代理免费https://www.kuaidaili.com/free/inha/1/
         """
-        url = 'https://www.kuaidaili.com/free/inha/{page}/'
-        for page in range(1, 10):
-            page_url = url.format(page=page)
-            tree = getHtmlTree(page_url)
-            proxy_list = tree.xpath('.//table//tr')
-            for tr in proxy_list[1:]:
-                yield ':'.join(tr.xpath('./td/text()')[0:2])
-
+        url = 'https://www.kuaidaili.com/free/inha/'
+        html = getHtmlTree(url)
+        for item in html.xpath('//table//tr')[1:]:
+            try:
+                yield GetFreeProxy.compose(
+                    item.xpath('./td[1]/text()')[0],
+                    item.xpath('./td[2]/text()')[0],
+                    item.xpath('./td[3]/text()')[0],
+                    item.xpath('./td[4]/text()')[0]
+                )
+            except Exception as e:
+                self.log.warning("fetch proxy failed: " + str(e))
 
 if __name__ == '__main__':
     gg = GetFreeProxy()

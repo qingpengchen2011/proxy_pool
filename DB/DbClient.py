@@ -101,6 +101,12 @@ class DbClient(object):
     def changeTable(self, name):
         self.client.changeTable(name)
 
+    def clean(self):
+        self.client.clean()
+
+    def random_one(self, filter):
+        return self.client.random_one(filter)
+
     def getNumber(self):
         return self.client.getNumber()
 

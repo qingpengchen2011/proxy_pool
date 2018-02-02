@@ -2,13 +2,13 @@
 # !/usr/bin/env python
 """
 -------------------------------------------------
-   File Name：     ProxyManager.py  
-   Description :  
+   File Name：     ProxyManager.py
+   Description :
    Author :       JHao
    date：          2016/12/3
 -------------------------------------------------
    Change Activity:
-                   2016/12/3: 
+                   2016/12/3:
 -------------------------------------------------
 """
 __author__ = 'JHao'
@@ -20,7 +20,7 @@ from DB.DbClient import DbClient
 from Util.GetConfig import GetConfig
 from Util.LogHandler import LogHandler
 from ProxyGetter.getFreeProxy import GetFreeProxy
-
+from geoip import geolite2
 
 class ProxyManager(object):
     """
@@ -40,35 +40,27 @@ class ProxyManager(object):
         :return:
         """
         for proxyGetter in self.config.proxy_getter_functions:
-            proxy_set = set()
             # fetch raw proxy
             for proxy in getattr(GetFreeProxy, proxyGetter.strip())():
                 if proxy:
-                    self.log.info('{func}: fetch proxy {proxy}'.format(func=proxyGetter, proxy=proxy))
-                    proxy_set.add(proxy.strip())
+                    self.log.info('{func}: fetch proxy {proxy}'.format(func=proxyGetter, proxy=proxy['ip']))
+                    self.db.changeTable(self.useful_proxy_queue)
+                    if self.db.exists(proxy['ip']):
+                        continue
+                    self.db.changeTable(self.raw_proxy_queue)
+                    proxy['country'] = self.get_ip_country(proxy['ip'])
+                    self.db.put(proxy)
 
-            # store raw proxy
-            for proxy in proxy_set:
-                self.db.changeTable(self.useful_proxy_queue)
-                if self.db.exists(proxy):
-                    continue
-                self.db.changeTable(self.raw_proxy_queue)
-                self.db.put(proxy)
+    def get_ip_country(self, ip):
+        return geolite2.lookup(ip).country
 
-    def get(self):
+    def get(self, filters):
         """
         return a useful proxy
         :return:
         """
         self.db.changeTable(self.useful_proxy_queue)
-        item_dict = self.db.getAll()
-        if item_dict:
-            if EnvUtil.PY3:
-                return random.choice(list(item_dict.keys()))
-            else:
-                return random.choice(item_dict.keys())
-        return None
-        # return self.db.pop()
+        return self.db.random_one(filters)
 
     def delete(self, proxy):
         """
@@ -85,10 +77,10 @@ class ProxyManager(object):
         :return:
         """
         self.db.changeTable(self.useful_proxy_queue)
-        item_dict = self.db.getAll()
-        if EnvUtil.PY3:
-            return list(item_dict.keys()) if item_dict else list()
-        return item_dict.keys() if item_dict else list()
+        return self.db.getAll()
+
+    def clean(self):
+        self.db.clean()
 
     def getNumber(self):
         self.db.changeTable(self.raw_proxy_queue)
