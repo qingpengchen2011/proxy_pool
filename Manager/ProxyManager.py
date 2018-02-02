@@ -52,7 +52,8 @@ class ProxyManager(object):
                     self.db.put(proxy)
 
     def get_ip_country(self, ip):
-        return geolite2.lookup(ip).country
+        match = geolite2.lookup(ip)
+        return match.country if match else None
 
     def get(self, filters):
         """
